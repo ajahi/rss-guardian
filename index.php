@@ -1,17 +1,23 @@
 <?php
-require 'vendor/autoload.php';
 
 use Slim\Factory\AppFactory;
 use App\Controllers\GuardianController;
+use App\Services\Cache\FileCacheService;
+
+require __DIR__ . '/vendor/autoload.php';
 
 $app = AppFactory::create();
+$app->addRoutingMiddleware();
+$app->addErrorMiddleware(true, true, true);
 
-// Default route to handle missing section
-$app->get('/', function ($request, $response) {
-    return $response->withHeader('Location', '/world')->withStatus(302);
+$cacheService = new FileCacheService(__DIR__ . '/cache');
+$guardianController = new GuardianController($cacheService);
+
+// Default route for /api/section will use 'world'
+$app->get('/', function ($request, $response) use ($guardianController) {
+    return $guardianController->fetchSection($request, $response, ['section' => 'world']);
 });
 
-// Route to handle different sections
-$app->get('/{section}', [GuardianController::class, 'fetchSection']);
-
+// Section route
+$app->get('/{section}', [$guardianController, 'fetchSection']);
 $app->run();

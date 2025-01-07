@@ -1,0 +1,14 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/var/www/html
+      - ./vendor:/var/www/html/vendor
+    ports:
+      - "8080:8080"
+    environment:
+      - API_KEY=${API_KEY}
+      - API_URL=${API_URL}

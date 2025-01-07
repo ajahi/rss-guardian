@@ -29,23 +29,19 @@ This is a PHP application built with the Slim framework to fetch data from the G
    ```
 
 3. Configure the Guardian API key:
-   - Update the API key in `App/Controllers/GuardianController.php` with your Guardian API key.
+   - Update the API key in .env with your Guardian API key.
 
 4. Start the server:
    ```bash
    php -S localhost:8000 index.php
    ```
 
-## Usage
+## Simpler deploy method with docker
 
-- Visit `http://localhost:8000/` to view the RSS feed for the default `world` section.
-- Specify a section in the URL to view its RSS feed, e.g.:
-  - `http://localhost:8000/sports`
-  - `http://localhost:8000/tech`
-
-## Folder Structure
-
-```
+   ```bash
+   cp .env.example .env
+   docker compose up --build || docker-compose up --build || docker-compose up --build -d
+   ```
 .
 ├── App/
 │   └── Controllers/
