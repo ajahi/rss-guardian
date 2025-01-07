@@ -29,7 +29,7 @@ This is a PHP application built with the Slim framework to fetch data from the G
    ```
 
 3. Configure the Guardian API key:
-   - Update the API key in `App/Controllers/GuardianController.php` with your Guardian API key.
+   - Update the API key in .env with your Guardian API key.
 
 4. Start the server:
    ```bash
@@ -39,6 +39,7 @@ This is a PHP application built with the Slim framework to fetch data from the G
 ## Simpler deploy method with docker
 
    ```bash
+   cp .env.example .env
    docker compose up --build || docker-compose up --build || docker-compose up --build -d
    ```
 .
