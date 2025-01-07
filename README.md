@@ -36,16 +36,11 @@ This is a PHP application built with the Slim framework to fetch data from the G
    php -S localhost:8000 index.php
    ```
 
-## Usage
+## Simpler deploy method with docker
 
-- Visit `http://localhost:8000/` to view the RSS feed for the default `world` section.
-- Specify a section in the URL to view its RSS feed, e.g.:
-  - `http://localhost:8000/sports`
-  - `http://localhost:8000/tech`
-
-## Folder Structure
-
-```
+   ```bash
+   docker compose up --build || docker-compose up --build || docker-compose up --build -d
+   ```
 .
 ├── App/
 │   └── Controllers/
