@@ -15,6 +15,7 @@ class GuardianController
 
     public function __construct()
     {
+        // https://github.com/vlucas/phpdotenv
         $dotenv = Dotenv::createImmutable(dirname(__DIR__, 2)); 
         $dotenv->load();
 
@@ -31,11 +32,27 @@ class GuardianController
     {
         $section = $args['section'] ?? 'world';
 
-        // Create an HTTP client
+        //cache var
+        $cacheDir = dirname(__DIR__, 2) . '/cache';
+        $cacheFile = $cacheDir . '/guardian_section_' . $section . '.cache';
+        $cacheTTL = 600; // Cache time-to-live in seconds (10 minutes)
+
+        // Ensure cache directory exists
+        if (!is_dir($cacheDir)) {
+            mkdir($cacheDir, 0755, true);
+        }
+
+        // Check if a valid cache file exists
+        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTTL) {
+            $cachedResponse = file_get_contents($cacheFile);
+            $response->getBody()->write($cachedResponse);
+            return $response->withHeader('Content-Type', 'application/rss+xml');
+        }
+
+        //https call
         $client = new Client();
 
         try {
-            // Fetch data from the Guardian API
             $apiResponse = $client->request('GET', $this->baseUrl, [
                 'query' => [
                     'q' => $section,
@@ -63,6 +80,10 @@ class GuardianController
                     $item->addChild('link', htmlspecialchars($result['webUrl']));
                     $item->addChild('guid', htmlspecialchars($result['apiUrl']));
                 }
+
+                // Convert RSS feed to XML and cache it
+                $rssXml = $rssFeed->asXML();
+                file_put_contents($cacheFile, $rssXml);
 
                 $response->getBody()->write($rssFeed->asXML());
                 return $response->withHeader('Content-Type', 'application/rss+xml');
