@@ -6,11 +6,26 @@ use GuzzleHttp\Client;
 use SimpleXMLElement;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Dotenv\Dotenv;
 
 class GuardianController
 {
-    private $apiKey = 'a331f88a-5584-4809-b1fa-ee1fa71d6774';
-    private $baseUrl = 'https://content.guardianapis.com/sections';
+    private $apiKey;
+    private $baseUrl;
+
+    public function __construct()
+    {
+        $dotenv = Dotenv::createImmutable(dirname(__DIR__, 2)); 
+        $dotenv->load();
+
+        $this->apiKey = $_ENV['API_KEY'] ?? '';
+        $this->baseUrl = $_ENV['API_URL'] ?? '';
+
+        if (empty($this->apiKey) || empty($this->baseUrl)) {
+            throw new Exception('.env is not configured properly');
+        }
+        
+    }
 
     public function fetchSection(Request $request, Response $response, $args): Response
     {
