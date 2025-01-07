@@ -19,7 +19,7 @@ This is a PHP application built with the Slim framework to fetch data from the G
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/your-repo/guardian-api-rss.git
+   git clone https://github.com/ajahi/guardian-api-rss.git
    cd guardian-api-rss
    ```
 
@@ -33,7 +33,7 @@ This is a PHP application built with the Slim framework to fetch data from the G
 
 4. Start the server:
    ```bash
-   php -S localhost:8000 index.php
+   php -S localhost:8080 index.php
    ```
 
 ## Simpler deploy method with docker
@@ -42,11 +42,4 @@ This is a PHP application built with the Slim framework to fetch data from the G
    cp .env.example .env
    docker compose up --build || docker-compose up --build || docker-compose up --build -d
    ```
-.
-├── App/
-│   └── Controllers/
-│       └── GuardianController.php
-├── vendor/
-├── composer.json
-├── index.php
-```
+
