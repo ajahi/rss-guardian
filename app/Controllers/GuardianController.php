@@ -7,49 +7,40 @@ use SimpleXMLElement;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Dotenv\Dotenv;
+use App\Services\Cache\CacheServiceInterface;
 
 class GuardianController
 {
     private $apiKey;
     private $baseUrl;
+    private $cacheService;
 
-    public function __construct()
+    public function __construct(CacheServiceInterface $cacheService)
     {
-        // https://github.com/vlucas/phpdotenv
-        $dotenv = Dotenv::createImmutable(dirname(__DIR__, 2)); 
+        $dotenv = Dotenv::createImmutable(dirname(__DIR__, 2));
         $dotenv->load();
 
         $this->apiKey = $_ENV['API_KEY'] ?? '';
         $this->baseUrl = $_ENV['API_URL'] ?? '';
+        $this->cacheService = $cacheService;
 
         if (empty($this->apiKey) || empty($this->baseUrl)) {
             throw new Exception('.env is not configured properly');
         }
-        
     }
 
     public function fetchSection(Request $request, Response $response, $args): Response
     {
         $section = $args['section'] ?? 'world';
+        $cacheKey = 'guardian_section_' . $section;
 
-        //cache var
-        $cacheDir = dirname(__DIR__, 2) . '/cache';
-        $cacheFile = $cacheDir . '/guardian_section_' . $section . '.cache';
-        $cacheTTL = 600; // Cache time-to-live in seconds (10 minutes)
-
-        // Ensure cache directory exists
-        if (!is_dir($cacheDir)) {
-            mkdir($cacheDir, 0755, true);
-        }
-
-        // Check if a valid cache file exists
-        if (file_exists($cacheFile) && (time() - filemtime($cacheFile)) < $cacheTTL) {
-            $cachedResponse = file_get_contents($cacheFile);
+        // Check cache first
+        if ($cachedResponse = $this->cacheService->get($cacheKey)) {
             $response->getBody()->write($cachedResponse);
             return $response->withHeader('Content-Type', 'application/rss+xml');
         }
 
-        //https call
+        // If not in cache, fetch from API
         $client = new Client();
 
         try {
@@ -64,36 +55,40 @@ class GuardianController
 
             if ($data['response']['status'] === 'ok' && !empty($data['response']['results'])) {
                 $results = $data['response']['results'];
+                $rssXml = $this->generateRssFeed($results, $section);
+                
+                // Cache the response
+                $this->cacheService->set($cacheKey, $rssXml);
 
-                // Generate RSS feed
-                $rssFeed = new SimpleXMLElement('<rss></rss>');
-                $rssFeed->addAttribute('version', '2.0');
-
-                $channel = $rssFeed->addChild('channel');
-                $channel->addChild('title', 'Guardian API RSS Feed - ' . ucfirst($section));
-                $channel->addChild('link', $this->baseUrl);
-                $channel->addChild('description', 'RSS feed generated from Guardian API for ' . $section . ' section.');
-
-                foreach ($results as $result) {
-                    $item = $channel->addChild('item');
-                    $item->addChild('title', htmlspecialchars($result['webTitle']));
-                    $item->addChild('link', htmlspecialchars($result['webUrl']));
-                    $item->addChild('guid', htmlspecialchars($result['apiUrl']));
-                }
-
-                // Convert RSS feed to XML and cache it
-                $rssXml = $rssFeed->asXML();
-                file_put_contents($cacheFile, $rssXml);
-
-                $response->getBody()->write($rssFeed->asXML());
+                $response->getBody()->write($rssXml);
                 return $response->withHeader('Content-Type', 'application/rss+xml');
-            } else {
-                $response->getBody()->write('No results found for section: ' . htmlspecialchars($section));
-                return $response->withStatus(404);
             }
+
+            $response->getBody()->write('No results found for section: ' . htmlspecialchars($section));
+            return $response->withStatus(404);
         } catch (Exception $e) {
             $response->getBody()->write('Error fetching data: ' . $e->getMessage());
             return $response->withStatus(500);
         }
+    }
+
+    private function generateRssFeed(array $results, string $section): string
+    {
+        $rssFeed = new SimpleXMLElement('<rss></rss>');
+        $rssFeed->addAttribute('version', '2.0');
+
+        $channel = $rssFeed->addChild('channel');
+        $channel->addChild('title', 'Guardian API RSS Feed - ' . ucfirst($section));
+        $channel->addChild('link', $this->baseUrl);
+        $channel->addChild('description', 'RSS feed generated from Guardian API for ' . $section . ' section.');
+
+        foreach ($results as $result) {
+            $item = $channel->addChild('item');
+            $item->addChild('title', htmlspecialchars($result['webTitle']));
+            $item->addChild('link', htmlspecialchars($result['webUrl']));
+            $item->addChild('guid', htmlspecialchars($result['apiUrl']));
+        }
+
+        return $rssFeed->asXML();
     }
 }
